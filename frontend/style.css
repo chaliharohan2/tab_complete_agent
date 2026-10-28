@@ -1,0 +1,107 @@
+* { box-sizing: border-box; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background: #0f1115;
+  color: #e6e6e6;
+  display: flex;
+  justify-content: center;
+  padding-top: 8vh;
+  margin: 0;
+}
+.container {
+  width: 640px;
+  max-width: 90vw;
+}
+h1 {
+  font-size: 1.4rem;
+  margin-bottom: 0.2rem;
+}
+.subtitle {
+  color: #9aa0a6;
+  font-size: 0.85rem;
+  margin-top: 0;
+  margin-bottom: 1.2rem;
+}
+.subtitle code {
+  background: #1c1f26;
+  padding: 1px 5px;
+  border-radius: 4px;
+  color: #8ab4f8;
+}
+.input-wrap {
+  position: relative;
+}
+#query-input {
+  width: 100%;
+  font-size: 1.05rem;
+  padding: 14px 16px;
+  border-radius: 10px;
+  border: 1px solid #2c2f36;
+  background: #1a1d23;
+  color: #e6e6e6;
+  outline: none;
+}
+#query-input:focus {
+  border-color: #4f7cff;
+}
+.suggestions {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  background: #1a1d23;
+  border: 1px solid #2c2f36;
+  border-radius: 10px;
+  overflow: hidden;
+  z-index: 10;
+  max-height: 320px;
+  overflow-y: auto;
+}
+.suggestions.hidden {
+  display: none;
+}
+.suggestion-item {
+  padding: 10px 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  border-bottom: 1px solid #22252c;
+}
+.suggestion-item:last-child {
+  border-bottom: none;
+}
+.suggestion-item:hover {
+  background: #22252c;
+}
+.suggestion-value {
+  font-size: 0.95rem;
+}
+.suggestion-type {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 3px 8px;
+  border-radius: 999px;
+  color: #0f1115;
+  font-weight: 600;
+}
+.type-person { background: #8ab4f8; }
+.type-location { background: #81c995; }
+.type-product { background: #fdd663; }
+.type-client { background: #f28b82; }
+
+.suggestions-empty {
+  padding: 10px 16px;
+  color: #9aa0a6;
+  font-size: 0.85rem;
+}
+
+.debug {
+  margin-top: 60px;
+  font-size: 0.75rem;
+  color: #6b7280;
+  white-space: pre-wrap;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  line-height: 1.5;
+}

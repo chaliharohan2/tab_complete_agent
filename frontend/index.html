@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Entity-Aware Autocomplete POC</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="container">
+    <h1>Entity-Aware Autocomplete</h1>
+    <p class="subtitle">
+      Try: <code>Show me the sales for del</code> or
+      <code>Show me the sales for the sales person del</code>
+    </p>
+
+    <div class="input-wrap">
+      <input id="query-input" type="text" placeholder="Show me the sales for..." autocomplete="off" />
+      <div id="suggestions" class="suggestions hidden"></div>
+    </div>
+
+    <div id="debug" class="debug"></div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
