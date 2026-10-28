@@ -13,11 +13,11 @@ import remote  # noqa: E402
 
 REMOTE_DIR = "~/tab_complete_poc_bench"
 REMOTE_VENV = f"{REMOTE_DIR}/venv"
-REMOTE_SERVICE_PATH = f"{REMOTE_DIR}/service.py"
 REMOTE_LOG_PATH = f"{REMOTE_DIR}/service.log"
 PORT = int(os.environ.get("CLASSIFIER_PORT", "8800"))
 
-LOCAL_SERVICE_PATH = os.path.join(os.path.dirname(__file__), "..", "classifier_service", "service.py")
+LOCAL_SERVICE_DIR = os.path.join(os.path.dirname(__file__), "..", "classifier_service")
+SERVICE_FILES = ["service.py", "router.py", "rules.py"]
 
 
 def main():
@@ -27,12 +27,13 @@ def main():
     )
     print(out, err)
 
-    print("2. Uploading service.py...")
+    print("2. Uploading service code...")
     # upload() uses sftp with absolute paths on the remote side; expand ~ first.
     home_out, _, _ = remote.run("echo $HOME")
     home = home_out.strip()
-    remote_abs_path = REMOTE_SERVICE_PATH.replace("~", home)
-    remote.upload(LOCAL_SERVICE_PATH, remote_abs_path)
+    remote_dir = REMOTE_DIR.replace("~", home)
+    for name in SERVICE_FILES:
+        remote.upload(os.path.join(LOCAL_SERVICE_DIR, name), f"{remote_dir}/{name}")
 
     print("3. Stopping any previous instance...")
     remote.run("pkill -f 'uvicorn service:app' || true")
@@ -55,7 +56,7 @@ def main():
         pass
 
     print("5. Waiting for it to come up...")
-    for _ in range(30):
+    for _ in range(90):  # loading an 8B model takes a minute or two
         time.sleep(2)
         out, err, rc = remote.run(f"curl -s http://localhost:{PORT}/health || true")
         if '"status":"ok"' in out.replace(" ", ""):

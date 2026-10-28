@@ -1,14 +1,21 @@
 """
 Small SSH helper for deploying/managing the classifier microservice on the
-GPU box. Credentials come from environment variables (or a .env file loaded
-by your shell) -- never hardcode them here.
+GPU box. Credentials come from environment variables, falling back to the
+gitignored .env file at the repo root -- never hardcode them here.
 
-Required env vars: GPU_HOST, GPU_USER, GPU_PASSWORD
+Required: GPU_HOST, GPU_USER, GPU_PASSWORD
 """
 import os
 import sys
 
 import paramiko
+
+_ENV_FILE = os.path.join(os.path.dirname(__file__), "..", ".env")
+if os.path.exists(_ENV_FILE):
+    for _line in open(_ENV_FILE):
+        _k, _, _v = _line.strip().partition("=")
+        if _k and not _k.startswith("#"):
+            os.environ.setdefault(_k, _v)
 
 GPU_HOST = os.environ["GPU_HOST"]
 GPU_USER = os.environ["GPU_USER"]

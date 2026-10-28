@@ -1,94 +1,45 @@
 """
-Zero-shot entity-type classifier microservice.
-
-Wraps MoritzLaurer/deberta-v3-xsmall-zeroshot-v1.1-all-33 (an NLI cross-encoder,
-~70M params) behind a tiny FastAPI endpoint. Meant to run on a GPU box for
-~5-10ms inference latency (CPU inference with this architecture is ~1-2s,
-which is why this lives on its own service rather than in-process).
-
-No training/fine-tuning involved -- this is pure zero-shot classification via
-hand-written label hypotheses (see ENTITY_TYPES / OFF_TOPIC_DESC below, kept in
-sync with backend/config.py).
+Next-entity router microservice (rules + Qwen3-8B yes/no scoring, see
+router.py). Runs on the GPU box; ~125ms per LLM-routed request, ~0ms when the
+keyword rules fire.
 
 Run with:
     uvicorn service:app --host 0.0.0.0 --port 8800
 """
 import logging
+import os
+import time
 
-import torch
 from fastapi import FastAPI
 from pydantic import BaseModel
-from transformers import AutoModelForSequenceClassification, AutoTokenizer
+
+from router import DEFAULT_MODEL, DEFAULT_THRESHOLD, Router
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("classifier_service")
 
-MODEL_NAME = "MoritzLaurer/deberta-v3-xsmall-zeroshot-v1.1-all-33"
-HYP_TEMPLATE = "This example is about {}."
+MODEL_NAME = os.environ.get("ROUTER_MODEL", DEFAULT_MODEL)
+THRESHOLD = float(os.environ.get("ROUTER_THRESHOLD", DEFAULT_THRESHOLD))
 
-# Keep these descriptions in sync with backend/config.py (ENTITY_TYPES / OFF_TOPIC_DESC).
-ENTITY_TYPES = {
-    "person": "a sales person or salesperson's name",
-    "location": "a city, place, or geographic location",
-    "product": "a product or item name",
-    "client": "a client, customer, or company name",
-}
-OFF_TOPIC_DESC = (
-    "a general question that is not asking to search for a specific "
-    "person, location, product, or client"
-)
+logger.info("Loading router model %s", MODEL_NAME)
+router = Router(MODEL_NAME, threshold=THRESHOLD)
+logger.info("Router ready.")
 
-device = "cuda" if torch.cuda.is_available() else "cpu"
-logger.info("Loading %s on %s", MODEL_NAME, device)
-
-tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
-model = AutoModelForSequenceClassification.from_pretrained(MODEL_NAME).to(device)
-model.eval()
-
-_id2label = model.config.id2label
-ENTAIL_IDX = [i for i, label in _id2label.items() if "entail" in label.lower()][0]
-
-LABELS = list(ENTITY_TYPES.keys()) + ["off_topic"]
-DESCRIPTIONS = list(ENTITY_TYPES.values()) + [OFF_TOPIC_DESC]
-HYPOTHESES = [HYP_TEMPLATE.format(d) for d in DESCRIPTIONS]
-
-# Warmup so the first real request isn't slow.
-with torch.no_grad():
-    _warm = tokenizer(["warmup"] * len(HYPOTHESES), HYPOTHESES, return_tensors="pt", padding=True, truncation=True).to(device)
-    model(**_warm)
-    if device == "cuda":
-        torch.cuda.synchronize()
-logger.info("Model warmed up and ready.")
-
-app = FastAPI(title="Entity-Type Zero-Shot Classifier")
+app = FastAPI(title="Next-Entity Router")
 
 
 class ClassifyRequest(BaseModel):
     text: str
-    labels: dict[str, str] | None = None  # optional override: name -> description
 
 
 @app.post("/classify")
 def classify(req: ClassifyRequest):
-    if req.labels:
-        labels = list(req.labels.keys()) + ["off_topic"]
-        hypotheses = [HYP_TEMPLATE.format(d) for d in req.labels.values()] + [
-            HYP_TEMPLATE.format(OFF_TOPIC_DESC)
-        ]
-    else:
-        labels, hypotheses = LABELS, HYPOTHESES
-
-    premises = [req.text] * len(hypotheses)
-    inputs = tokenizer(premises, hypotheses, return_tensors="pt", padding=True, truncation=True).to(device)
-    with torch.no_grad():
-        logits = model(**inputs).logits
-    if device == "cuda":
-        torch.cuda.synchronize()
-    scores = torch.softmax(logits, dim=-1)[:, ENTAIL_IDX].tolist()
-
-    return {"scores": dict(zip(labels, scores))}
+    t0 = time.time()
+    result = router.route(req.text)
+    result["latency_ms"] = round((time.time() - t0) * 1000, 1)
+    return result
 
 
 @app.get("/health")
 def health():
-    return {"status": "ok", "device": device, "model": MODEL_NAME}
+    return {"status": "ok", "device": router.lm.device, "model": MODEL_NAME, "threshold": THRESHOLD}
