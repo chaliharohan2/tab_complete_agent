@@ -3,6 +3,9 @@ Next-entity router microservice (rules + Qwen3-8B yes/no scoring, see
 router.py). Runs on the GPU box; ~125ms per LLM-routed request, ~0ms when the
 keyword rules fire.
 
+Design history, rejected approaches, and why the 8B scorer is fast:
+    APPROACH.md
+
 Run with:
     uvicorn service:app --host 0.0.0.0 --port 8800
 """

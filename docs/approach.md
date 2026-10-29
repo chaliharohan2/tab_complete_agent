@@ -1,4 +1,13 @@
-# Model selection writeup
+# Model selection writeup (historical — round 1)
+
+**Current design lives in [`classifier_service/APPROACH.md`](../classifier_service/APPROACH.md).**
+That doc covers every approach we tried (embeddings, NLI, small instruct
+LLMs, value-likelihood, Qwen3-8B yes/no), why we dropped each, the rule
+layer, and how the 8B scorer stays ~130ms.
+
+What follows is the original NLI-era writeup, kept so the first bake-off
+numbers are not lost. The "Decision" at the bottom is **no longer what is
+deployed**.
 
 ## Problem framing
 

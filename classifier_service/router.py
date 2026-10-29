@@ -10,8 +10,9 @@ Two layers, no training anywhere:
      forward pass on top of a KV-cached few-shot prefix, giving independent
      (multi-label) probabilities.
 
-See eval/ for the benchmark that led to this design (why not NLI, why not a
-<2B model, why yes/no scoring rather than free generation).
+See APPROACH.md for the full history (rejected models, why yes/no scoring
+rather than generation, how the KV-cached verbalizer stays ~130ms).
+Eval: eval/eval_service.py, eval/test_cases.py, eval/test_cases_holdout.py.
 """
 import copy
 import random
